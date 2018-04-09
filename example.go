@@ -1,5 +1,3 @@
-package example
-
 import (
   "time"
   "log"
