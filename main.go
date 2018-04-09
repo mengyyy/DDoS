@@ -4,7 +4,7 @@ import (
   "time"
   "log"
   "flag"
-  ddos "github.com/Konstantin8105/DDoS"
+  ddos "github.com/mengyyy/DDoS"
 )
 
 func main() {
