@@ -1,5 +1,5 @@
 // Example
-
+// Usage go run example.go -u http://127.0.0.1:80 -w 100 -t 10 -hc headers.json
 package main
 
 import (
