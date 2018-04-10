@@ -13,7 +13,6 @@ import (
 // DDoS - structure of value for DDoS attack
 type DDoS struct {
 	url           string
-        headers       map[string]string
 	request       *http.Request
 	stop          *chan bool
 	amountWorkers int
