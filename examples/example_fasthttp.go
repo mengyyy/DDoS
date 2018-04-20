@@ -61,10 +61,7 @@ func (d *DDoS) Run() {
                         req.Header.Add(k, v)
                     }
                     client := &fasthttp.Client{}
-                    //resp := fasthttp.AcquireResponse()
-                    //err := client.Do(d.request, resp)
-                    err := client.Do(req, nil)
-
+                    err := client.DoTimeout(req, nil, d.timeout)
                     atomic.AddInt64(&d.amountRequests, 1)
                     if err == nil {
                         atomic.AddInt64(&d.successRequest, 1)
