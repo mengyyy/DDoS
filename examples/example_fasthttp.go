@@ -44,10 +44,10 @@ func New(URL string, workers int, Headers map[string]string, Timeout time.Durati
     }
 
     client := &fasthttp.Client{
-        MaxConnsPerHost:     2048,
+        MaxConnsPerHost:     19384,
         MaxIdleConnDuration: time.Duration(5) * time.Second,
-        ReadTimeout:         time.Duration(4) * time.Second,
-        WriteTimeout:        time.Duration(4) * time.Second,
+        ReadTimeout:         time.Duration(1) * time.Second,
+        WriteTimeout:        time.Duration(1) * time.Second,
         Dial: func(addr string) (net.Conn, error) {
             return fasthttp.DialTimeout(addr, time.Duration(2) * time.Second)
         },
@@ -83,10 +83,11 @@ func (d *DDoS) Run() {
                     case fasthttp.ErrTimeout:
                         // timeout
                         log.Printf("index | %3d | client do timeout error | %s\n", index, err)
+                        time.Sleep(time.Duration(3) * time.Second)       
                     case fasthttp.ErrDialTimeout:
                         // dialing to the given TCP address timed out
                         log.Printf("index | %3d | TCP dial timeout error  | %s\n", index, err)
-                        time.Sleep(time.Duration(4) * time.Second)
+                        time.Sleep(time.Duration(3) * time.Second)
                     default:
                         // no free connections available to host
                         log.Printf("index | %3d | other error | %s\n", index, err)
