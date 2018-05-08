@@ -111,3 +111,5 @@ func main() {
 		go d.Do(cnt, guard)
 	}
 }
+
+//nohup go run fasttest.go -w 800 -u http://127.0.0.1 &> /dev/null &
